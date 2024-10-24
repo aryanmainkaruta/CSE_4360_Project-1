@@ -11,6 +11,7 @@ obstacle_positions = [(0.61, 2.743), (0.915, 2.743), (1.219, 2.743), (1.829, 1.2
 
 start_position = (0.305, 1.219)  # Starting point of the robot
 goal_position = (3.658, 1.829)   # Target point the robot aims to reach
+goal_tolerance = 0.01  # Tolerance for floating-point comparison
 
 def calculate_distance(point1, point2):
     """ 
@@ -46,12 +47,27 @@ def generate_neighbors(node):
     
     return valid_moves
 
+def is_goal_reached(current, goal, tolerance):
+    """
+    Check if the current point is within a certain tolerance of the goal.
+    This avoids direct floating-point comparison.
+    """
+    return calculate_distance(current, goal) < tolerance
+
 def a_star_search(start, goal):
     """
     Implementation of the A* algorithm to find the shortest valid path between the start and goal.
     The algorithm uses the cost to reach a point (g_score) combined with a heuristic estimate
     (the straight-line distance to the goal) to prioritize exploration.
     """
+    # Check if start or goal is inside an obstacle
+    if check_if_obstacle(start[0], start[1]):
+        print("Start point is inside an obstacle!")
+        return None
+    if check_if_obstacle(goal[0], goal[1]):
+        print("Goal point is inside an obstacle!")
+        return None
+
     # Initialize the priority queue with the starting point
     to_explore = []
     heapq.heappush(to_explore, (0, start))  # (priority, node)
@@ -65,8 +81,11 @@ def a_star_search(start, goal):
         # Retrieve the node with the lowest total cost estimate
         current_priority, current_node = heapq.heappop(to_explore)
 
+        # Debugging: Show the current node being explored
+        print(f"Exploring node: {current_node} with priority {current_priority}")
+
         # If we've reached the goal, reconstruct the path by backtracking
-        if current_node == goal:
+        if is_goal_reached(current_node, goal, goal_tolerance):
             complete_path = []
             while current_node in path_tracking:
                 complete_path.append(current_node)
@@ -96,6 +115,6 @@ path_result = a_star_search(start_position, goal_position)
 if path_result:
     print("Path successfully found:")
     for position in path_result:
-        print(position)
+        print(f"({position[0]:.4f}, {position[1]:.4f})")  # Format to 4 decimal places
 else:
     print("No valid path could be found.")
