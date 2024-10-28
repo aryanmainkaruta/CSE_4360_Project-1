@@ -1,106 +1,110 @@
 import math
+#from astar_methods import *          # Import additional A* methods, if necessary
+#from CalibrationTest import *         # Import robot movement functions
+import matplotlib.pyplot as plt
 
-# Maximum number of obstacles and their coordinates
-MAX_OBSTACLES = 25
-num_obstacles = 13
+# Define obstacle, start, and goal parameters
 obstacle_positions = [
     (0.61, 2.743), (0.915, 2.743), (1.219, 2.743), (1.829, 1.219),
     (1.829, 1.524), (1.829, 1.829), (1.829, 2.134), (2.743, 0.305),
     (2.743, 0.61), (2.743, 0.915), (2.743, 2.743), (3.048, 2.743),
     (3.353, 2.743)
 ]
+start_position = (0.305, 1.219)
+goal_position = (3.658, 1.829)
+obstacle_radius = 0.61
+tile_size = 0.305
+goal_tolerance = 0.01
 
-start_position = (0.305, 1.219)  # Starting point of the robot
-goal_position = (3.658, 1.829)    # Target point the robot aims to reach
-goal_tolerance = 0.01              # Tolerance for floating-point comparison
-
+# A* Pathfinding and Visualization Functions
 def calculate_distance(point1, point2):
-    """Calculate the straight-line distance between two points in the 2D plane."""
     return math.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
 
 def check_if_obstacle(x, y):
-    """Verify if a given point (x, y) is too close to any defined obstacles."""
-    for obs in obstacle_positions:
-        if calculate_distance((x, y), obs) < 0.61:
-            return True
-    return False
+    return any(calculate_distance((x, y), obs) < obstacle_radius for obs in obstacle_positions)
 
 def generate_neighbors(node):
-    """Produce a list of potential neighboring points from the current location (node)."""
     x, y = node
-    step = 0.305  # Movement step size (half of a tile)
+    step = tile_size
     possible_moves = [
         (x + step, y), (x - step, y),
         (x, y + step), (x, y - step)
     ]
-    
-    # Filter out any neighboring points that land inside obstacles
-    valid_moves = []
-    for move in possible_moves:
-        if not check_if_obstacle(move[0], move[1]):
-            valid_moves.append(move)
-    
-    return valid_moves
+    return [move for move in possible_moves if not check_if_obstacle(move[0], move[1])]
 
 def is_goal_reached(current, goal, tolerance):
-    """Check if the current point is within a certain tolerance of the goal."""
     return calculate_distance(current, goal) < tolerance
 
 def a_star_search(start, goal):
-    """Implementation of the A* algorithm using a list instead of a priority queue."""
-    # Check if start or goal is inside an obstacle
-    if check_if_obstacle(start[0], start[1]):
-        print("Start point is inside an obstacle!")
+    if check_if_obstacle(start[0], start[1]) or check_if_obstacle(goal[0], goal[1]):
         return None
-    if check_if_obstacle(goal[0], goal[1]):
-        print("Goal point is inside an obstacle!")
-        return None
-
-    # Initialize the list for exploration with the starting point
-    to_explore = [(start, calculate_distance(start, goal))]  # (node, f_score)
-
-    # Structures to track the best known paths and costs
-    path_tracking = {}
-    cost_to_reach = {start: 0}  # g_score: cost from start to current
-
+    to_explore = [(start, calculate_distance(start, goal))]
+    path_tracking, cost_to_reach = {}, {start: 0}
     while to_explore:
-        # Sort to get the node with the lowest total cost estimate
         to_explore.sort(key=lambda x: x[1])
-        current_node, current_priority = to_explore.pop(0)
-
-        # Debugging: Show the current node being explored
-        print(f"Exploring node: {current_node} with priority {current_priority}")
-
-        # If we've reached the goal, reconstruct the path by backtracking
+        current_node, _ = to_explore.pop(0)
         if is_goal_reached(current_node, goal, goal_tolerance):
-            complete_path = []
+            path = []
             while current_node in path_tracking:
-                complete_path.append(current_node)
+                path.append(current_node)
                 current_node = path_tracking[current_node]
-            complete_path.reverse()  # Reverse the path to start from the beginning
-            return complete_path
-
-        # Examine each neighboring node
+            path.reverse()
+            return path
         for neighbor in generate_neighbors(current_node):
             new_cost = cost_to_reach[current_node] + calculate_distance(current_node, neighbor)
-
-            # Only consider this neighbor if we've found a cheaper path to it
             if neighbor not in cost_to_reach or new_cost < cost_to_reach[neighbor]:
-                path_tracking[neighbor] = current_node  # Track the best path to this neighbor
+                path_tracking[neighbor] = current_node
                 cost_to_reach[neighbor] = new_cost
-                estimated_total = new_cost + calculate_distance(neighbor, goal)  # g + heuristic
-
-                # Add the neighbor to the exploration list
+                estimated_total = new_cost + calculate_distance(neighbor, goal)
                 to_explore.append((neighbor, estimated_total))
+    return None
 
-    return None  # Return None if no valid path is found
+def plot_environment(path, obstacles, start, goal):
+    fig, ax = plt.subplots()
+    for obs in obstacles:
+        ax.add_artist(plt.Circle(obs, obstacle_radius, color='black', fill=False, linewidth=3))
+    if path:
+        x_path, y_path = zip(*path)
+        ax.plot(x_path, y_path, color='red', linewidth=2, label='Path')
+    ax.plot(start[0], start[1], 'go', markersize=10, label='Start')
+    ax.plot(goal[0], goal[1], 'bo', markersize=10, label='Goal')
+    
+    ax.set_aspect('equal', adjustable='box')
+    
+    x_min = min(min(x_path), start[0], goal[0]) - 0.5
+    x_max = max(max(x_path), start[0], goal[0]) + 0.5
+    y_min = min(min(y_path), start[1], goal[1]) - 0.5
+    y_max = max(max(y_path), start[1], goal[1]) + 0.5
+    
+    plt.xlim(x_min, x_max)
+    plt.ylim(y_min, y_max)
+    
+    
+    # plt.xlim(0, 4.5)
+    # plt.ylim(0, 3.5)
+    
+    ax.grid(True)
+    for x in range(int(x_min / tile_size) - 1, int(x_max / tile_size) + 1):
+        for y in range(int(y_min / tile_size) - 1, int(y_max / tile_size) + 1):
+            if not check_if_obstacle(x * tile_size, y * tile_size):
+                plt.plot(x * tile_size, y * tile_size, 'x', color='cyan', markersize=5)
+    plt.xlabel('X Position')
+    plt.ylabel('Y Position')
+    plt.legend()
+    plt.show()
 
-# Execute the A* algorithm to find a valid path from start to goal
+# Run A* and plot results
 path_result = a_star_search(start_position, goal_position)
+plot_environment(path_result, obstacle_positions, start_position, goal_position)
 
+# Execute robot movement commands along the path
 if path_result:
-    print("Path successfully found:")
-    for position in path_result:
-        print(f"({position[0]:.4f}, {position[1]:.4f})")  # Format to 4 decimal places
+    for i in range(1, len(path_result)):
+        x1, y1 = path_result[i - 1]
+        x2, y2 = path_result[i]
+        travel_angle = math.atan2(y2 - y1, x2 - x1)
+        travel_distance = calculate_distance((x1, y1), (x2, y2))
+        TurnForAngle(travel_angle)          # Turn robot towards next segment
+        MoveStraightForDistance(travel_distance)  # Move robot to the next position
 else:
     print("No valid path could be found.")
