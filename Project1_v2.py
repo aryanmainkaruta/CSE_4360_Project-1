@@ -17,6 +17,8 @@ tile_size = 0.305
 goal_tolerance = 0.01
 worldX=4.88
 worldY=3.05
+robotRadius=(8/12)*0.305 # Sets extra buffer around objects to avoid the robot scraping the side of objects
+subdivison=2 # How many times to split the tiles (technically increases processing time and memory)
 
 # A* Pathfinding and Visualization Functions
 def calculate_distance(point1, point2):
@@ -28,14 +30,14 @@ def check_if_obstacle_circle(x, y):
 # Assumes Square Obstacle
 def check_if_obstacle(x, y): 
     return any(
-        abs(x - obs[0]) < tile_size / 2 and abs(y - obs[1]) < tile_size / 2
+        abs(x - obs[0]) < (tile_size / 2 + robotRadius) and abs(y - obs[1]) < (tile_size / 2+robotRadius)
         for obs in obstacle_positions
     )
 
 
 def generate_neighbors(node):
     x, y = node
-    step = tile_size
+    step = tile_size / subdivison
     possible_moves = [
         (x + step, y), (x - step, y),
         (x, y + step), (x, y - step)
@@ -69,7 +71,7 @@ def a_star_search(start, goal):
                 to_explore.append((neighbor, estimated_total))
     return None
 
-def plot_environment(path, obstacles, start, goal):
+def plot_environment(path, obstacles, start, goal, subdivisions=subdivison):
     path.insert(0,start)
     fig, ax = plt.subplots()
 
@@ -106,10 +108,10 @@ def plot_environment(path, obstacles, start, goal):
     #     for y in range(int(y_min / tile_size) - 1, int(y_max / tile_size) + 1):
     #         if not check_if_obstacle(x * tile_size, y * tile_size):
     #             plt.plot(x * tile_size, y * tile_size, 'x', color='cyan', markersize=5)
-    for x in range(0, int(worldX*100), int(tile_size*100)):
-        for y in range(0, int(worldY*100), int(tile_size*100)):
-            if not check_if_obstacle(x/100 , y/100):
-                plt.plot(x/100, y/100, 'x', color='cyan', markersize=5)
+    for x in range(0, int(worldX*1000), int(tile_size*1000/subdivisions)):
+        for y in range(0, int(worldY*1000), int(tile_size*1000/subdivisions)):
+            if not check_if_obstacle(x/1000 , y/1000):
+                plt.plot(x/1000, y/1000, 'x', color='cyan', markersize=5)
 
     plt.xlabel('X Position')
     plt.ylabel('Y Position')
@@ -118,7 +120,7 @@ def plot_environment(path, obstacles, start, goal):
 
 # Run A* and plot results
 path_result = a_star_search(start_position, goal_position)
-plot_environment(path_result, obstacle_positions, start_position, goal_position)
+plot_environment(path_result, obstacle_positions, start_position, goal_position,subdivisions=subdivison)
 
 #Execute robot movement commands along the path
 if path_result:
