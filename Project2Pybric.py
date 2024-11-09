@@ -1,4 +1,5 @@
 import time
+import math
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor, ColorSensor, TouchSensor
 from pybricks.parameters import Port, Button
@@ -15,6 +16,11 @@ right_motor = Motor(Port.C)
 color_sensor = ColorSensor(Port.S1)
 touch_sensor = TouchSensor(Port.S2)
 
+MAX_OBSTACLES = 25
+num_obstacles = 13
+
+step_size = 0.305  # Robot movement step size (half of a tile)
+
 # 2D environment grid (0 = empty space, 1 = obstacle, 2 = fire)
 grid = [
     [0, 0, 0, 1, 0, 0, 0],  # Row 0
@@ -29,6 +35,20 @@ position = [0, 0]  # Robot's starting position
 goal_position = [2, 5]  # Position of the fire (goal)
 goal_reached = False  # Boolean to check if goal is reached
 on_m_line = True  # Bool to check whether the robot is following the M-line 
+
+# Define obstacles (hardcoded for the environment)
+obstacle_positions = [(0, 3), (1, 0), (1, 1), (3, 1), (3, 6), (4, 3), (4, 4)]
+
+def calculate_distance(point1, point2):
+    """Calculate the straight-line distance between two points in the 2D plane."""
+    return math.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2)
+
+def check_if_obstacle(x, y):
+    """Verify if a given point (x, y) is too close to any defined obstacles."""
+    for obs in obstacle_positions:
+        if calculate_distance((x, y), obs) < 0.61:  # 0.61 meters represents the size of an obstacle
+            return True
+    return False
 
 # Function to move forward towards the goal along the M-line
 def wander():
@@ -85,6 +105,13 @@ def detect_fire():
         return True
     return False
 
+# Function to simulate extinguishing fire
+def extinguish():
+    print("Extinguishing the fire...")
+
+# Function to simulate wall-following behavior
+def wall_follow():
+    print("Following the wall...")
 
 # Main function to manage robot behaviors
 def robot_controller():
@@ -104,8 +131,8 @@ def robot_controller():
                 on_m_line = False  # Switch to wall-following mode if obstacle is found
                 print("Obstacle encountered, switching to wall-following.")
         else:  # If not on M-line, attempt to follow the wall
-            print("Wall-following behavior activated (function commented out).")
-            # wall_follow()  # Call the wall-following behavior
+            print("Wall-following behavior activated.")
+            wall_follow()  # Call the wall-following behavior
 
 # Main loop to run the behavior controller
 if __name__ == "__main__":
