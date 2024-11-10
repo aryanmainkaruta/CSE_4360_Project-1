@@ -62,7 +62,25 @@ while True:
         LeftMotor.run(-50)
         wait(1000)
         TurnForAngle(90)
+        
+        
+# def extinguish_fire():        
+#     print("Activating fan to extinguish fire...")
+#     # Run fan motor for a set duration
+#     fan_motor.run(1000)  # Run fan at full speed
+#     wait(3000)  # Run fan for 3 seconds
+#     fan_motor.stop()  # Stop the fan after extinguishing
+#     print("Fire extinguished.")
 
+# def detect_fire():
+#     # Scan for the color of the fire (simulated by detecting a specific color or intensity)
+#     if color_sensor.color() == Color.RED:  # Assuming red paper represents fire
+#         print("Fire detected!")
+#         # Raise an alarm (could be visual or audible)
+#         hub.speaker.beep()  # Beep to indicate fire detection
+#         return True
+#     else:
+#         return False
 
 
 
