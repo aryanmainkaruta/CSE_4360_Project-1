@@ -63,6 +63,10 @@ while True:
         wait(1000)
         TurnForAngle(90)
 
+     if timer.time() > spiral_interval:
+        timer.reset()  # Reset the timer for the next interval
+        TurnForAngle(15, relative=True) 
+
 
 
 
